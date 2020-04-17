@@ -1,9 +1,11 @@
 import torch
 import torch.nn as nn
 
+
 class GLU(nn.Module):
     def __init__(self):
         super(GLU, self).__init__()
+
     def forward(self, X_input, X_gate):
         """ 
         dim(X_input) = dim(X_gate)
@@ -17,4 +19,4 @@ class GLU(nn.Module):
         tensor([[0.2953, 0.1023],
                 [0.2260, 0.4179]])
         """
-        return X_input*torch.sigmoid(X_gate)
+        return X_input * torch.sigmoid(X_gate)

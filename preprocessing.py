@@ -1,5 +1,6 @@
 from typing import List
 
+
 def process_sentence(sentence: str, stage='train'):
     """ process a single sentence
 
@@ -42,11 +43,10 @@ def get_feature(sentences: List[str], stage='train'):
     ([['中', '国', '中', '央', '电', '视', '台'], ['南', '京', '市', '长', '江', '大', '桥']], [['B', 'E', 'B', 'E', 'B', 'M', 'E'], ['B', 'E', 'S', 'B', 'E', 'B', 'E']])
     """
     chars_array = []
-    tags_array = [] 
+    tags_array = []
     for sent in sentences:
         chars, tags = process_sentence(sent, stage)
         chars_array.append(chars)
         if stage == 'train':
             tags_array.append(tags)
     return chars_array, tags_array
-
