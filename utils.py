@@ -14,12 +14,11 @@ class SIGHAN(Dataset):
                 ├── test.txt
                 └── train.txt            
             split: name of the split. ['dev', 'test', 'train']
-            
-
         """
         assert split in ['dev', 'test', 'train'], "unknown splits: must be in ['dev', 'test', 'train']"
+        self.root_path = root_path
         self.file_name = f"{split}.txt"
-        self.file_path = Path(root_path) / self.file_name
+        self.file_path = Path(self.root_path) / self.file_name
 
         with codecs.open(self.file_path, 'r', 'utf8') as f:
             self.data = list(map(lambda sent: sent.strip(), f.readlines()))
