@@ -1,19 +1,6 @@
-import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
-from layers import GLU
-
-class ConvGLUBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size, drop_out=0.2, **kwargs):
-        super(ConvGLUBlock, self).__init__()
-        self.conv_data = nn.Conv1d(in_channels, out_channels, kernel_size, **kwargs)
-        self.conv_gate = nn.Conv1d(in_channels, out_channels, kernel_size, **kwargs)
-        self.dropout = nn.Dropout(p=drop_out)
-        self.glu = GLU()
-
-    def forward(self, X):
-        return self.dropout(self.glu(self.conv_data(X), self.conv_gate(X)))
+from layers import ConvGLUBlock
 
 
 class CharWordSeg(nn.Module):
@@ -49,13 +36,13 @@ class CharWordSeg(nn.Module):
         >>> model(input_sents).shape
         torch.Size([3, 5, 3])
         """
-        X =  self.dropout_embed(self.char_embedding(input_sentences))  # X shape: (batch_size, max_sent_length, char_embed_size)
+        x = self.dropout_embed(self.char_embedding(input_sentences))  # X shape: (batch_size, max_sent_length, char_embed_size)
 
         # glu layers
         for glu_layers in self.glu_layers:
-            X = glu_layers(X)
-        # output dim: (batch_size, max_sent_length, channel_size) 
-        
-        X = self.hidden_to_tag(X)   # output dim: (batch_size, max_sen_length, num_tags)
-        return X
+            x = glu_layers(x)
+        # output dim: (batch_size, max_sent_length, channel_size)
+
+        x = self.hidden_to_tag(x)   # output dim: (batch_size, max_sen_length, num_tags)
+        return x
         

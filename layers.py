@@ -1,4 +1,3 @@
-import torch
 import torch.nn as nn
 
 
@@ -20,3 +19,16 @@ class GLU(nn.Module):
                 [0.2260, 0.4179]])
         """
         return X_input * torch.sigmoid(X_gate)
+
+
+class ConvGLUBlock(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size, drop_out=0.2, **kwargs):
+        super(ConvGLUBlock, self).__init__()
+        self.conv_data = nn.Conv1d(in_channels, out_channels, kernel_size, **kwargs)
+        self.conv_gate = nn.Conv1d(in_channels, out_channels, kernel_size, **kwargs)
+        self.dropout = nn.Dropout(p=drop_out)
+        self.glu = GLU()
+
+    def forward(self, X):
+        return self.dropout(self.glu(self.conv_data(X), self.conv_gate(X)))
+
