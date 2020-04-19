@@ -1,10 +1,11 @@
+import torch
 import torch.nn as nn
 
 from layers import ConvGLUBlock
 
 
 class CharWordSeg(nn.Module):
-    def __init__(self, vocab_size, char_embed_size, num_hidden_layer, channel_size, kernel_size, drop_out=0.2, num_tags=3):
+    def __init__(self, num_tags, vocab_size, char_embed_size, num_hidden_layer, channel_size, kernel_size, drop_out=0.2):
         super(CharWordSeg, self).__init__()
         self.char_embedding = nn.Embedding(vocab_size, char_embed_size)
         self.dropout_embed = nn.Dropout(drop_out)
@@ -23,7 +24,7 @@ class CharWordSeg(nn.Module):
     def forward(self, input_sentences):
         """ 
         Args:
-            input_sentences: List[List(int)] -> shape: (batch_size, max_sent_length)
+            input_sentences: torch.tensor -> shape: (batch_size, max_sent_length)
 
         Example:
         >>> vocab_size = 10
