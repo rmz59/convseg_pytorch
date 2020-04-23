@@ -1,13 +1,14 @@
 import codecs
 from pathlib import Path
 from typing import List
+from collections.abc import Iterable
 from torch.utils.data import Dataset
 
 # -----------------------------------------------------------------------------
 #               Datasets
 # -----------------------------------------------------------------------------
 class SIGHAN(Dataset):
-    def __init__(self, split, root_path):
+    def __init__(self, split, root_path, debug=False):
         """ Create SIGHAN datasets
 
         Arg:
@@ -25,6 +26,9 @@ class SIGHAN(Dataset):
 
         with codecs.open(self.file_path, 'r', 'utf8') as f:
             self.data = list(map(lambda sent: sent.strip(), f.readlines()))
+        
+        if debug:
+            self.data = self.data[:10]
 
     def __len__(self):
         return len(self.data)
@@ -33,51 +37,6 @@ class SIGHAN(Dataset):
         return self.data[idx]
 
 
-
-# -----------------------------------------------------------------------------
-#               Process vocabulary
-# -----------------------------------------------------------------------------
-def build_vocab(items, add_unk=True, add_pad=True):
-    """ build vocabularies from a item list
-    Args:
-        items: list of items
-        add_unk: bool. Whether to add unk 
-    
-    >>> build_vocab(["a","b","b"], add_unk=False, add_pad=True)
-    {'a': 1, 'b': 2, '<PAD>': 1e+20}
-    """
-    assert type(items) in (list, tuple)
-    dic = {}
-    for item in items:
-        dic[item] = dic.get(item, 0) + 1
-    if add_pad:
-        dic['<PAD>'] = 1e20
-    if add_unk:
-        dic['<UNK>'] = 1e10
-    return dic
-
-def add_id(items):
-    """ add ids to tokents
-
-    Args:
-        items: dict or list
-    Returns:
-        token2id, id2token: dict, dict
-    
-    >>> add_id({'a':10,'b':2,'<UNK>':1e20})
-    ({'<UNK>': 0, 'a': 1, 'b': 2}, {0: '<UNK>', 1: 'a', 2: 'b'})
-    >>> add_id(["S","D","E","S"])
-    ({'S': 3, 'D': 1, 'E': 2}, {0: 'S', 1: 'D', 2: 'E', 3: 'S'})
-    """
-    if type(items) is dict:
-        sorted_items = sorted(items.items(), key=lambda x: (-x[1], x[0]))
-        id2token = {i: v[0] for i, v in enumerate(sorted_items)}
-        token2id = {v: k for k, v in id2token.items()}
-        return token2id, id2token
-    elif type(items) is list:
-        id2token = {i: v for i, v in enumerate(items)}
-        token2id = {v: k for k, v in id2token.items()}
-        return token2id, id2token
 
 
 # -----------------------------------------------------------------------------
@@ -133,20 +92,104 @@ def get_feature(sentences: List[str], stage='train'):
             tags_array.append(tags)
     return chars_array, tags_array
 
+# -----------------------------------------------------------------------------
+#               Process vocabulary
+# -----------------------------------------------------------------------------
+def build_vocab(items, add_unk=True, add_pad=True):
+    """ build vocabularies from a item list
+    Args:
+        items: list of items
+        add_unk: bool. Whether to add unk 
+    
+    >>> build_vocab(["a","b","b"], add_unk=False, add_pad=True)
+    {'a': 1, 'b': 2, '<PAD>': 1e+20}
+    """
+    assert isinstance(items, Iterable), "input 'items' is not iterable"
+    dic = {}
+    for item in items:
+        dic[item] = dic.get(item, 0) + 1
+    if add_pad:
+        dic['<PAD>'] = 1e20
+    if add_unk:
+        dic['<UNK>'] = 1e10
+    return dic
 
-def pad_sents(sents, pad_token):
+def add_id(items):
+    """ add ids to tokents
+
+    Args:
+        items: dict or list
+    Returns:
+        token2id, id2token: dict, dict
+    
+    >>> add_id({'a':10,'b':2,'<UNK>':1e20})
+    ({'<UNK>': 0, 'a': 1, 'b': 2}, {0: '<UNK>', 1: 'a', 2: 'b'})
+    >>> add_id(["S","D","E","S"])
+    ({'S': 3, 'D': 1, 'E': 2}, {0: 'S', 1: 'D', 2: 'E', 3: 'S'})
+    """
+    if type(items) is dict:
+        sorted_items = sorted(items.items(), key=lambda x: (-x[1], x[0]))
+        id2token = {i: v[0] for i, v in enumerate(sorted_items)}
+        token2id = {v: k for k, v in id2token.items()}
+        return token2id, id2token
+    elif type(items) is list:
+        id2token = {i: v for i, v in enumerate(items)}
+        token2id = {v: k for k, v in id2token.items()}
+        return token2id, id2token
+
+def token2id(token_lists, map_token_to_id, unk_id=1):
+    """ transform tokens to ids
+
+    Args:
+        token_lists: List[List[Char]] -> input list of lists
+        map_token_to_id: dict
+    Returns:
+        ids: List[List[int]]
+    
+    >>> token_lists = [["中","国","结"]]
+    >>> map_token_to_id = {"中":2,"国":3,"<UNK>":1}
+    >>> token2id(token_lists, map_token_to_id)
+    [[2, 3, 1]]
+    """
+    ids = []
+    for tokens in token_lists:
+        ids.append([map_token_to_id.get(t, unk_id) for t in tokens])
+    return ids
+
+
+def id2token(id_lists, map_id_to_token):
+    """ transform tokens to ids
+
+    Args:
+        token_lists: List[List[Char]] -> input list of lists
+        map_token_to_id: dict
+    Returns:
+        ids: List[List[int]]
+    """
+    tokens = []
+    for ids in id_lists:
+        tokens.append([map_id_to_token[i] for i in ids])
+    return tokens
+
+
+def pad_sents(sents, pad_token, max_len=200):
     """ Pad list of sentences according to the longest sentence in the batch.
         The paddings should be at the end of each sentence.
-    @param sents (list[list[str]]): list of sentences, where each sentence
+    
+    Args:   
+        sents: list[list[str]]list of sentences, where each sentence
                                     is represented as a list of words
-    @param pad_token (str): padding token
-    @returns sents_padded (list[list[str]]): list of sentences where sentences shorter
-        than the max length sentence are padded out with the pad_token, such that
-        each sentences in the batch now has equal length.
+        pad_token (str): padding token
+    Returns: 
+        sents_padded: list[list[str]] list of sentences where sentences shorter
+            than the max length sentence are padded out with the pad_token, such that
+            each sentences in the batch now has equal length.
+        padding_mask: list[list[str]] list of masks. 
+    
+    Example:
+    >>> pad_sents([['a','b','c'],['d'],['e','f','g','h']], '<PAD>', 3)
+    ([['a', 'b', 'c'], ['d', '<PAD>', '<PAD>'], ['e', 'f', 'g']], [[1, 1, 1], [1, 0, 0], [1, 1, 1]])
     """
-    sents_padded = []
-
-    max_len = max(len(s) for s in sents)
-    sents_padded = [s + [pad_token]*(max_len - len(s)) for s in sents] 
-
-    return sents_padded
+    sents_padded = [s[:max_len] + [pad_token]*(max_len - len(s)) for s in sents]
+    padding_mask = [[1]*len(s[:max_len]) + [0]*(max_len - len(s)) for s in sents]
+    return sents_padded, padding_mask
