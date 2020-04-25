@@ -87,8 +87,9 @@ def get_feature(sentences: List[str], stage='train'):
     tags_array = []
     for sent in sentences:
         chars, tags = process_sentence(sent, stage)
-        chars_array.append(chars)
-        if stage == 'train':
+        if chars:
+            chars_array.append(chars)
+        if tags and stage == 'train':
             tags_array.append(tags)
     return chars_array, tags_array
 
