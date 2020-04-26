@@ -54,7 +54,7 @@ def evaluate(model, dev_data, batch_size, max_sent_length, device):
     return val_loss
 
 @click.command()
-@click.option('--split', default='dev', required=True)
+@click.option('--split', default='train', required=True)
 @click.option('--data_path', default="data/datasets/sighan2005-pku", help="path of the training data", required=True)
 @click.option('--save_to', default="outputs", required=True)
 @click.option('--batch_size', default=2048, type=int)
@@ -69,9 +69,10 @@ def evaluate(model, dev_data, batch_size, max_sent_length, device):
 @click.option('--patience', default=20, type=int)
 @click.option('--max_num_trial', default=20, type=int)
 @click.option('--lr_decay', default=0.5, type=float)
+@click.option('--last_model_path', default=None, type=str)
 @click.option('--cuda', default=True, type=bool)
 def train(split, data_path, save_to, batch_size, max_sent_length, char_embed_size, num_hidden_layer, 
-          channel_size, kernel_size, learning_rate, max_epoch, log_every, patience, max_num_trial, lr_decay, cuda): 
+          channel_size, kernel_size, learning_rate, max_epoch, log_every, patience, max_num_trial, lr_decay, last_model_path, cuda): 
     if not Path(save_to).exists():
         Path(save_to).mkdir()
 
@@ -100,9 +101,18 @@ def train(split, data_path, save_to, batch_size, max_sent_length, char_embed_siz
     }
 
     data_loader = DataLoader(dataset, batch_size=batch_size)
-
-    model = CharWordSeg(vocab_tag, char_embed_size, num_hidden_layer, channel_size, kernel_size).to(device)
+    model = CharWordSeg(vocab_tag, char_embed_size, num_hidden_layer, channel_size, kernel_size)
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+
+    if last_model_path is not None:
+        # load model
+        logging.info(f'load model from  {last_model_path}')
+        params = torch.load(last_model_path, map_location=lambda storage, loc: storage)
+        model.load_state_dict(params['state_dict'])
+        logging.info('restore parameters of the optimizers')
+        optimizer.load_state_dict(torch.load(model_save_path + '.optim'))
+
+    model = model.to(device)
     model.train()
 
     epoch = 0
@@ -134,8 +144,10 @@ def train(split, data_path, save_to, batch_size, max_sent_length, char_embed_siz
 
         train_loss = train_loss / cum_cnt
         val_loss = evaluate(model, val_dataset, batch_size, max_sent_length, device)
-        logging.info(f'epoch {epoch}\t train_loss: {train_loss}\t val_loss:{val_loss}')
 
+
+        logging.info(f'epoch {epoch}\t train_loss: {train_loss}\t val_loss:{val_loss}\t  speed:{time.time()-train_time:.2f}s/epoch\t time elapsed {time.time()-begin_time:.2f}s')
+        train_time = time.time()
         
         is_better = len(hist_valid_scores) == 0 or val_loss < min(hist_valid_scores)
         hist_valid_scores.append(val_loss)
@@ -163,14 +175,14 @@ def train(split, data_path, save_to, batch_size, max_sent_length, char_embed_siz
 
                 # decay lr, and restore from previously best checkpoint
                 lr = optimizer.param_groups[0]['lr'] * lr_decay
-                print(f'load previously best model and decay learning rate to {lr}' % lr)
+                logging.info(f'load previously best model and decay learning rate to {lr}')
 
                 # load model
                 params = torch.load(model_save_path, map_location=lambda storage, loc: storage)
                 model.load_state_dict(params['state_dict'])
                 model = model.to(device)
 
-                print('restore parameters of the optimizers')
+                logging.info('restore parameters of the optimizers')
                 optimizer.load_state_dict(torch.load(model_save_path + '.optim'))
 
                 # set new lr
