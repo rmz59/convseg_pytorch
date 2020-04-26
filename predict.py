@@ -94,10 +94,10 @@ def predict(model_path, data_path, split, output_path, batch_size, max_sent_leng
 
 
 @click.command()
-@click.argument('mode', help="eval - compute the test loss; pred - generate the output textfiles")
+@click.option('--mode', default='pred', help="eval - compute the test loss; pred - generate the output textfiles")
 @click.option('--model_path', default="outputs/model_best", help="path of the trained model", required=True)
 @click.option('--data_path', default="data/datasets/sighan2005-pku", help="path of the training data", required=True)
-@click.option('--split', default="train")
+@click.option('--split', default="test")
 @click.option('--output_path', default="test_output.txt")
 @click.option('--batch_size', default=1024, type=int)
 @click.option('--max_sent_length', default=200, type=int)

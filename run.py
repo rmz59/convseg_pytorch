@@ -101,7 +101,7 @@ def train(split, data_path, save_to, batch_size, max_sent_length, char_embed_siz
     }
 
     data_loader = DataLoader(dataset, batch_size=batch_size)
-    model = CharWordSeg(vocab_tag, char_embed_size, num_hidden_layer, channel_size, kernel_size)
+    model = CharWordSeg(vocab_tag, char_embed_size, num_hidden_layer, channel_size, kernel_size).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
     if last_model_path is not None:
@@ -110,9 +110,8 @@ def train(split, data_path, save_to, batch_size, max_sent_length, char_embed_siz
         params = torch.load(last_model_path, map_location=lambda storage, loc: storage)
         model.load_state_dict(params['state_dict'])
         logging.info('restore parameters of the optimizers')
-        optimizer.load_state_dict(torch.load(model_save_path + '.optim'))
+        optimizer.load_state_dict(torch.load(last_model_path + '.optim'))
 
-    model = model.to(device)
     model.train()
 
     epoch = 0
@@ -190,7 +189,7 @@ def train(split, data_path, save_to, batch_size, max_sent_length, char_embed_siz
                     param_group['lr'] = lr
 
                 # reset patience
-                patience = 0
+                cur_patience = 0
 
         if epoch == max_epoch:
             print('reached maximum number of epochs!')
