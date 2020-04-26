@@ -83,15 +83,25 @@ def get_feature(sentences: List[str], stage='train'):
     >>> get_feature(sent, stage="train")
     ([['中', '国', '中', '央', '电', '视', '台'], ['南', '京', '市', '长', '江', '大', '桥']], [['B', 'E', 'B', 'E', 'B', 'M', 'E'], ['B', 'E', 'S', 'B', 'E', 'B', 'E']])
     """
-    chars_array = []
-    tags_array = []
-    for sent in sentences:
-        chars, tags = process_sentence(sent, stage)
-        if chars:
-            chars_array.append(chars)
-        if tags and stage == 'train':
-            tags_array.append(tags)
-    return chars_array, tags_array
+    if stage == 'train':
+        chars_array = []
+        tags_array = []
+        for sent in sentences:
+            chars, tags = process_sentence(sent, stage)
+            if chars:
+                chars_array.append(chars)
+            if tags and stage == 'train':
+                tags_array.append(tags)
+        return chars_array, tags_array
+    elif stage == 'predict':
+        chars_array = []
+        for sent in sentences:
+            chars, tags = process_sentence(sent, stage)
+            if chars:
+                chars_array.append(chars)
+            else:
+                chars_array.append(['EMPTY'])
+        return chars_array
 
 # -----------------------------------------------------------------------------
 #               Process vocabulary
@@ -162,10 +172,10 @@ def id2token(id_lists, map_id_to_token):
     """ transform tokens to ids
 
     Args:
-        token_lists: List[List[Char]] -> input list of lists
+        token_lists: List[List[int]] -> input list of lists
         map_token_to_id: dict
     Returns:
-        ids: List[List[int]]
+        ids: List[List[char]]
     """
     tokens = []
     for ids in id_lists:
