@@ -10,13 +10,15 @@ class CharWordSeg(nn.Module):
     def __init__(self, vocab_tag, char_embed_size, num_hidden_layer, channel_size, kernel_size, dropout_rate=0.2):
         super(CharWordSeg, self).__init__()
         self.vocab_tag = vocab_tag
-        num_tags = len(self.vocab_tag['tag_to_index'])
-        vocab_size = len(self.vocab_tag['token_to_index'])
-        self.char_embedding = nn.Embedding(vocab_size, char_embed_size)
+        self.char_embed_size = char_embed_size 
         self.num_hidden_layer = num_hidden_layer
         self.channel_size = channel_size
         self.kernel_size = kernel_size
         self.dropout_rate = dropout_rate
+
+        num_tags = len(self.vocab_tag['tag_to_index'])
+        vocab_size = len(self.vocab_tag['token_to_index'])
+        self.char_embedding = nn.Embedding(vocab_size, char_embed_size)
         self.dropout_embed = nn.Dropout(dropout_rate)
         self.glu_layers = nn.ModuleList([ConvGLUBlock(in_channels=char_embed_size, 
                                                     out_channels=channel_size, 
@@ -91,7 +93,7 @@ class CharWordSeg(nn.Module):
         logging.info(f'save model parameters to [{path}]')
 
         params = {
-            'args': dict(char_embed_size=self.char_embedding, 
+            'args': dict(char_embed_size=self.char_embed_size, 
                          num_hidden_layer=self.num_hidden_layer, 
                          channel_size = self.channel_size,
                          kernel_size = self.kernel_size,
